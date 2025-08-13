@@ -81,7 +81,9 @@ class PrayerReportApp {
             }
         } catch (error) {
             console.error('Firebase initialization failed:', error);
-            this.showErrorMessage('Firebase connection failed. Please check your configuration.');
+            // Don't show error message immediately, let the app work with local storage
+            console.log('Continuing with local storage mode');
+            this.isFirebaseReady = false;
         }
     }
 
@@ -971,7 +973,32 @@ async function switchToTab(tabName) {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.prayerApp = new PrayerReportApp();
+    try {
+        window.prayerApp = new PrayerReportApp();
+        console.log('Prayer Report App initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize Prayer Report App:', error);
+        // Show user-friendly error message
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #e53e3e;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 10000;
+            text-align: center;
+        `;
+        errorDiv.innerHTML = `
+            <h3>App Loading Error</h3>
+            <p>Please refresh the page or try again later.</p>
+            <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; border: none; border-radius: 5px; background: white; color: #e53e3e; cursor: pointer;">Refresh Page</button>
+        `;
+        document.body.appendChild(errorDiv);
+    }
 });
 
 // Auto-save current user name

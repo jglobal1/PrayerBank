@@ -24,7 +24,15 @@ export const db = getFirestore(app);
 // Initialize Firebase Authentication
 export const auth = getAuth(app);
 
-// Initialize Firebase Analytics
-export const analytics = getAnalytics(app);
+// Initialize Firebase Analytics (only in browser environment)
+let analytics;
+try {
+    if (typeof window !== 'undefined') {
+        analytics = getAnalytics(app);
+    }
+} catch (error) {
+    console.warn('Analytics not available:', error);
+}
+export { analytics };
 
 export default app;
