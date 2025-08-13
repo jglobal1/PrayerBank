@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+    <style>
+        .nav-btn { padding: 10px 20px; margin: 5px; cursor: pointer; background: #6b46c1; color: white; border: none; border-radius: 8px; }
+        .nav-btn.active { background: #553c9a; }
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+        .admin-login-btn { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: #6b46c1; color: white; border: none; border-radius: 25px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    
+    <nav>
+        <button class="nav-btn active" data-tab="welcome">Welcome</button>
+        <button class="nav-btn" data-tab="prayer-form">Prayer Log</button>
+        <button class="nav-btn" data-tab="my-reports">My Reports</button>
+        <button class="nav-btn admin-only" data-tab="admin-dashboard">Admin Dashboard</button>
+    </nav>
+
+    <div id="welcome" class="tab-content active">
+        <h2>Welcome Tab</h2>
+        <p>This is the welcome content.</p>
+        <button onclick="switchToTab('prayer-form')">Go to Prayer Form</button>
+    </div>
+
+    <div id="prayer-form" class="tab-content">
+        <h2>Prayer Form Tab</h2>
+        <p>This is the prayer form content.</p>
+        <button onclick="switchToTab('my-reports')">Go to My Reports</button>
+    </div>
+
+    <div id="my-reports" class="tab-content">
+        <h2>My Reports Tab</h2>
+        <p>This is the reports content.</p>
+        <button onclick="switchToTab('admin-dashboard')">Go to Admin</button>
+    </div>
+
+    <div id="admin-dashboard" class="tab-content">
+        <h2>Admin Dashboard Tab</h2>
+        <p>This is the admin content.</p>
+        <button onclick="switchToTab('welcome')">Go to Welcome</button>
+    </div>
+
+    <script>
+        console.log('Debug script loaded');
+        
+        // Simple navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                console.log('Button clicked:', e.target.dataset.tab);
+                switchTab(e.target.dataset.tab);
+            });
+        });
+        
+        function switchTab(tabName) {
+            console.log('Switching to tab:', tabName);
+            
+            // Remove active class from all buttons and content
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected button and content
+            const selectedBtn = document.querySelector(`[data-tab="${tabName}"]`);
+            const selectedContent = document.getElementById(tabName);
+            
+            if (selectedBtn) selectedBtn.classList.add('active');
+            if (selectedContent) selectedContent.classList.add('active');
+            
+            console.log('Switched to tab:', tabName);
+        }
+        
+        // Global function
+        window.switchToTab = switchTab;
+        
+        console.log('Event listeners set up');
+    </script>
+</body>
+</html>
+

@@ -1287,3 +1287,37 @@ body {
         font-size: 14px;
     }
 }
+
+/* Admin-only elements - hidden by default */
+.admin-only {
+    display: none !important;
+}
+
+/* Show admin elements when authenticated */
+.admin-only.show {
+    display: block !important;
+}
+
+/* Admin login button styling */
+.admin-login-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 10px 20px;
+    background: var(--primary-purple);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(107, 70, 193, 0.3);
+    transition: all 0.3s ease;
+}
+
+.admin-login-btn:hover {
+    background: var(--dark-purple);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(107, 70, 193, 0.4);
+}

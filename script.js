@@ -90,22 +90,7 @@ class PrayerReportApp {
         const adminLoginBtn = document.createElement('button');
         adminLoginBtn.textContent = 'Admin Login';
         adminLoginBtn.className = 'admin-login-btn';
-        adminLoginBtn.style.cssText = `
-            position: fixed; 
-            top: 20px; 
-            right: 20px; 
-            z-index: 1000; 
-            padding: 10px 20px; 
-            background: #6b46c1;
-            color: white; 
-            border: none; 
-            border-radius: 25px; 
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            box-shadow: 0 2px 10px rgba(107, 70, 193, 0.3);
-            transition: all 0.3s ease;
-        `;
+
         
         adminLoginBtn.addEventListener('click', () => {
             if (this.isAdmin) {
@@ -115,14 +100,7 @@ class PrayerReportApp {
             }
         });
         
-        adminLoginBtn.addEventListener('mouseenter', () => {
-            adminLoginBtn.style.transform = 'translateY(-2px)';
-            adminLoginBtn.style.boxShadow = '0 4px 20px rgba(107, 70, 193, 0.4)';
-        });
-        adminLoginBtn.addEventListener('mouseleave', () => {
-            adminLoginBtn.style.transform = 'translateY(0)';
-            adminLoginBtn.style.boxShadow = '0 2px 10px rgba(107, 70, 193, 0.3)';
-        });
+
         
         document.body.appendChild(adminLoginBtn);
     }
@@ -175,7 +153,7 @@ class PrayerReportApp {
 
     showAdminFeatures() {
         document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = 'block';
+            el.classList.add('show');
         });
         
         // Update admin login button
@@ -188,7 +166,7 @@ class PrayerReportApp {
 
     hideAdminFeatures() {
         document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = 'none';
+            el.classList.remove('show');
         });
         
         // Update admin login button
