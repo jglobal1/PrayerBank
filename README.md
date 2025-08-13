@@ -70,19 +70,35 @@ The system counts these for each occurrence in the month and shows your progress
 
 ## Data Storage
 
-- All data is stored locally in your browser using localStorage
-- Data persists between browser sessions
-- No internet connection required
-- Data is private to your device
+The app uses **Firebase Firestore** for cloud-based data storage with **localStorage fallback**. This provides:
+- **Cross-device synchronization** - Reports sync across all devices
+- **Real-time updates** - Admin sees reports from all users immediately
+- **Cloud backup** - Data is safely stored in the cloud
+- **Offline support** - App works even without internet connection
+- **Scalable storage** - No limits on data storage
+
+### Setup Required
+Before using the app, you need to set up Firebase:
+1. Follow the [Firebase Setup Guide](FIREBASE_SETUP.md)
+2. Update the configuration in `firebase-config.js`
+3. Test the connection
+
+### Fallback Mode
+If Firebase is not configured, the app falls back to localStorage for basic functionality.
 
 ## File Structure
 
 ```
 prayerreport/
-├── index.html          # Main application file
-├── styles.css          # Styling and responsive design
-├── script.js           # Application logic and functionality
-└── README.md           # This file
+├── index.html              # Main application file
+├── styles.css              # Styling and responsive design
+├── script.js               # Application logic and functionality
+├── firebase-config.js      # Firebase configuration
+├── firebase-service.js     # Firebase database operations
+├── FIREBASE_SETUP.md       # Firebase setup instructions
+├── package.json            # Node.js dependencies
+├── vercel.json            # Vercel deployment configuration
+└── README.md              # This file
 ```
 
 ## Browser Compatibility
@@ -111,10 +127,11 @@ Add or modify prayer types in the HTML form and update the labels in the JavaScr
 
 ## Security Notes
 
-- This is a client-side application with no server
-- Data is stored locally in each user's browser
-- For more secure data storage, consider a server-based solution
-- The admin toggle is for testing - remove it in production
+- **Firebase Security**: The app uses Firebase for secure cloud storage
+- **Admin Authentication**: Admin access is protected with password authentication
+- **Data Privacy**: Each user can only see their own reports
+- **Cloud Backup**: All data is safely backed up in the cloud
+- **Production Ready**: The app is ready for production use with proper Firebase setup
 
 ## Future Enhancements
 

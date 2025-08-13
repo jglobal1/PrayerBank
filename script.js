@@ -1,16 +1,25 @@
 // Prayer Report App - Main JavaScript File
+import { 
+    savePrayerReport, 
+    getUserReports, 
+    getAllReports, 
+    getReportsByMonth, 
+    deletePrayerReport, 
+    getUniqueMembers 
+} from './firebase-service.js';
 
 class PrayerReportApp {
     constructor() {
-        this.prayerReports = JSON.parse(localStorage.getItem('prayerReports')) || [];
+        this.prayerReports = []; // Will be loaded from Firebase
         this.currentUser = localStorage.getItem('currentUser') || '';
         this.isAdmin = false; // Start as non-admin
         this.adminPassword = 'church2024'; // You can change this password
         this.isSubmitting = false; // Prevent duplicate submissions
+        this.isFirebaseReady = false; // Track Firebase initialization
         
         this.initializeApp();
         this.setupEventListeners();
-        this.loadData();
+        this.initializeFirebase();
     }
 
     initializeApp() {
@@ -30,7 +39,7 @@ class PrayerReportApp {
     setupEventListeners() {
         // Navigation
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+            btn.addEventListener('click', async (e) => await this.switchTab(e.target.dataset.tab));
         });
 
         // Form submission
@@ -57,6 +66,23 @@ class PrayerReportApp {
 
         // Quick time buttons
         this.setupQuickTimeButtons();
+    }
+
+    async initializeFirebase() {
+        try {
+            // Test Firebase connection by trying to get reports
+            const result = await getUserReports('test');
+            this.isFirebaseReady = true;
+            console.log('Firebase initialized successfully');
+            
+            // Load user reports if user is set
+            if (this.currentUser) {
+                await this.loadUserReports();
+            }
+        } catch (error) {
+            console.error('Firebase initialization failed:', error);
+            this.showErrorMessage('Firebase connection failed. Please check your configuration.');
+        }
     }
 
     setupAdminLogin() {
@@ -204,7 +230,38 @@ class PrayerReportApp {
         }, 3000);
     }
 
-    switchTab(tabName) {
+    showErrorMessage(message) {
+        // Create a temporary error message
+        const errorDiv = document.createElement('div');
+        errorDiv.textContent = message;
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #e53e3e;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            z-index: 1001;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+            animation: slideInRight 0.3s ease;
+        `;
+        
+        document.body.appendChild(errorDiv);
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            errorDiv.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.parentNode.removeChild(errorDiv);
+                }
+            }, 300);
+        }, 5000);
+    }
+
+    async switchTab(tabName) {
         // Check admin access for admin dashboard
         if (tabName === 'admin-dashboard' && !this.isAdmin) {
             alert('Admin access required. Please login as admin.');
@@ -221,9 +278,9 @@ class PrayerReportApp {
 
         // Load data for the tab
         if (tabName === 'my-reports') {
-            this.loadUserReports();
+            await this.loadUserReports();
         } else if (tabName === 'admin-dashboard' && this.isAdmin) {
-            this.loadAdminDashboard();
+            await this.loadAdminDashboard();
         }
     }
 
@@ -297,40 +354,55 @@ class PrayerReportApp {
         const duration = this.calculateDuration(startTime, endTime);
         formData.duration = duration;
 
-        // Save to localStorage
-        this.prayerReports.push(formData);
-        localStorage.setItem('prayerReports', JSON.stringify(this.prayerReports));
+        // Save to Firebase
+        this.saveToFirebase(formData);
+    }
 
-        // Save current user name for future reference
-        this.currentUser = formData.memberName;
-        localStorage.setItem('currentUser', this.currentUser);
+    async saveToFirebase(formData) {
+        try {
+            if (!this.isFirebaseReady) {
+                throw new Error('Firebase not ready');
+            }
 
-        // Show success modal
-        this.showSuccessModal(formData);
+            const result = await savePrayerReport(formData);
+            
+            if (result.success) {
+                // Save current user name for future reference
+                this.currentUser = formData.memberName;
+                localStorage.setItem('currentUser', this.currentUser);
 
-        // Show success message on welcome page
-        this.showWelcomeSuccessMessage();
+                // Show success modal
+                this.showSuccessModal(formData);
 
-        // Reset form but keep the name
-        e.target.reset();
-        document.getElementById('memberName').value = memberName;
-        document.getElementById('prayerDate').value = new Date().toISOString().split('T')[0];
-        
-        // Reset time pickers (this now includes clearing active states)
-        this.resetTimePickers();
-        
-        // Reload user reports to show the new entry
-        this.loadUserReports();
+                // Show success message on welcome page
+                this.showWelcomeSuccessMessage();
 
-        // Reset submission flag and button state
-        setTimeout(() => {
+                // Reset form but keep the name
+                const form = document.getElementById('prayerForm');
+                form.reset();
+                document.getElementById('memberName').value = formData.memberName;
+                document.getElementById('prayerDate').value = new Date().toISOString().split('T')[0];
+                
+                // Reset time pickers
+                this.resetTimePickers();
+                
+                // Reload user reports to show the new entry
+                await this.loadUserReports();
+            } else {
+                throw new Error(result.error || 'Failed to save report');
+            }
+        } catch (error) {
+            console.error('Error saving to Firebase:', error);
+            alert('Failed to save prayer report. Please try again.');
+        } finally {
+            // Reset submission flag and button state
             this.isSubmitting = false;
             const submitBtn = document.querySelector('.submit-btn');
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save"></i> Submit Prayer Report';
             }
-        }, 1000);
+        }
     }
 
     resetTimePickers() {
@@ -366,14 +438,9 @@ class PrayerReportApp {
         document.getElementById('successModal').style.display = 'none';
     }
 
-    loadData() {
-        this.loadUserReports();
-        if (this.isAdmin) {
-            this.loadAdminDashboard();
-        }
-    }
 
-    loadUserReports() {
+
+    async loadUserReports() {
         const currentUser = document.getElementById('memberName').value.trim() || this.currentUser;
         if (!currentUser) {
             // If no current user, show message to enter name
@@ -382,12 +449,31 @@ class PrayerReportApp {
             return;
         }
 
-        const userReports = this.prayerReports.filter(report => 
-            report.memberName.toLowerCase() === currentUser.toLowerCase()
-        );
+        try {
+            if (!this.isFirebaseReady) {
+                console.log('Firebase not ready, using local data');
+                const userReports = this.prayerReports.filter(report => 
+                    report.memberName.toLowerCase() === currentUser.toLowerCase()
+                );
+                this.displayUserReports(userReports);
+                this.updateUserStats(userReports);
+                return;
+            }
 
-        this.displayUserReports(userReports);
-        this.updateUserStats(userReports);
+            const result = await getUserReports(currentUser);
+            if (result.success) {
+                this.displayUserReports(result.reports);
+                this.updateUserStats(result.reports);
+            } else {
+                console.error('Failed to load user reports:', result.error);
+                this.displayUserReports([]);
+                this.updateUserStats([]);
+            }
+        } catch (error) {
+            console.error('Error loading user reports:', error);
+            this.displayUserReports([]);
+            this.updateUserStats([]);
+        }
     }
 
     displayUserReports(reports) {
@@ -532,88 +618,189 @@ class PrayerReportApp {
         this.updateUserStats(filteredReports);
     }
 
-    loadAdminDashboard() {
+    async loadAdminDashboard() {
         if (!this.isAdmin) {
             alert('Admin access required');
             return;
         }
         
-        this.updateAdminStats();
-        this.displayMembersList();
-        this.displayAllReports();
+        await this.updateAdminStats();
+        await this.displayMembersList();
+        await this.displayAllReports();
     }
 
-    updateAdminStats() {
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        
-        const monthlyReports = this.prayerReports.filter(report => {
-            const reportDate = new Date(report.prayerDate);
-            return reportDate.getMonth() === currentMonth && reportDate.getFullYear() === currentYear;
-        });
+    async updateAdminStats() {
+        try {
+            if (!this.isFirebaseReady) {
+                // Fallback to local data
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+                
+                const monthlyReports = this.prayerReports.filter(report => {
+                    const reportDate = new Date(report.prayerDate);
+                    return reportDate.getMonth() === currentMonth && reportDate.getFullYear() === currentYear;
+                });
 
-        const uniqueMembers = [...new Set(this.prayerReports.map(report => report.memberName))];
-        const totalHours = this.prayerReports.reduce((total, report) => total + report.duration, 0);
+                const uniqueMembers = [...new Set(this.prayerReports.map(report => report.memberName))];
+                const totalHours = this.prayerReports.reduce((total, report) => total + report.duration, 0);
 
-        document.getElementById('totalMembers').textContent = uniqueMembers.length;
-        document.getElementById('monthlyReports').textContent = monthlyReports.length;
-        document.getElementById('totalHours').textContent = totalHours.toFixed(1);
+                document.getElementById('totalMembers').textContent = uniqueMembers.length;
+                document.getElementById('monthlyReports').textContent = monthlyReports.length;
+                document.getElementById('totalHours').textContent = totalHours.toFixed(1);
+                return;
+            }
+
+            const [allReportsResult, membersResult] = await Promise.all([
+                getAllReports(),
+                getUniqueMembers()
+            ]);
+
+            if (allReportsResult.success && membersResult.success) {
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+                
+                const monthlyReports = allReportsResult.reports.filter(report => {
+                    const reportDate = new Date(report.prayerDate);
+                    return reportDate.getMonth() === currentMonth && reportDate.getFullYear() === currentYear;
+                });
+
+                const totalHours = allReportsResult.reports.reduce((total, report) => total + report.duration, 0);
+
+                document.getElementById('totalMembers').textContent = membersResult.members.length;
+                document.getElementById('monthlyReports').textContent = monthlyReports.length;
+                document.getElementById('totalHours').textContent = totalHours.toFixed(1);
+            }
+        } catch (error) {
+            console.error('Error updating admin stats:', error);
+        }
     }
 
-    displayMembersList() {
+    async displayMembersList() {
         const container = document.getElementById('membersList');
         container.innerHTML = '';
 
-        const memberStats = {};
-        
-        this.prayerReports.forEach(report => {
-            if (!memberStats[report.memberName]) {
-                memberStats[report.memberName] = {
-                    totalHours: 0,
-                    totalSessions: 0
-                };
-            }
-            memberStats[report.memberName].totalHours += report.duration;
-            memberStats[report.memberName].totalSessions += 1;
-        });
+        try {
+            if (!this.isFirebaseReady) {
+                // Fallback to local data
+                const memberStats = {};
+                
+                this.prayerReports.forEach(report => {
+                    if (!memberStats[report.memberName]) {
+                        memberStats[report.memberName] = {
+                            totalHours: 0,
+                            totalSessions: 0
+                        };
+                    }
+                    memberStats[report.memberName].totalHours += report.duration;
+                    memberStats[report.memberName].totalSessions += 1;
+                });
 
-        Object.entries(memberStats).forEach(([name, stats]) => {
-            const memberCard = document.createElement('div');
-            memberCard.className = 'member-card';
-            memberCard.innerHTML = `
-                <div class="member-name">${name}</div>
-                <div class="member-stats">
-                    <div class="member-stat">
-                        <div class="member-stat-value">${stats.totalHours.toFixed(1)}</div>
-                        <div class="member-stat-label">Total Hours</div>
-                    </div>
-                    <div class="member-stat">
-                        <div class="member-stat-value">${stats.totalSessions}</div>
-                        <div class="member-stat-label">Sessions</div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(memberCard);
-        });
+                Object.entries(memberStats).forEach(([name, stats]) => {
+                    const memberCard = document.createElement('div');
+                    memberCard.className = 'member-card';
+                    memberCard.innerHTML = `
+                        <div class="member-name">${name}</div>
+                        <div class="member-stats">
+                            <div class="member-stat">
+                                <div class="member-stat-value">${stats.totalHours.toFixed(1)}</div>
+                                <div class="member-stat-label">Total Hours</div>
+                            </div>
+                            <div class="member-stat">
+                                <div class="member-stat-value">${stats.totalSessions}</div>
+                                <div class="member-stat-label">Sessions</div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(memberCard);
+                });
+                return;
+            }
+
+            const [allReportsResult, membersResult] = await Promise.all([
+                getAllReports(),
+                getUniqueMembers()
+            ]);
+
+            if (allReportsResult.success && membersResult.success) {
+                const memberStats = {};
+                
+                allReportsResult.reports.forEach(report => {
+                    if (!memberStats[report.memberName]) {
+                        memberStats[report.memberName] = {
+                            totalHours: 0,
+                            totalSessions: 0
+                        };
+                    }
+                    memberStats[report.memberName].totalHours += report.duration;
+                    memberStats[report.memberName].totalSessions += 1;
+                });
+
+                Object.entries(memberStats).forEach(([name, stats]) => {
+                    const memberCard = document.createElement('div');
+                    memberCard.className = 'member-card';
+                    memberCard.innerHTML = `
+                        <div class="member-name">${name}</div>
+                        <div class="member-stats">
+                            <div class="member-stat">
+                                <div class="member-stat-value">${stats.totalHours.toFixed(1)}</div>
+                                <div class="member-stat-label">Total Hours</div>
+                            </div>
+                            <div class="member-stat">
+                                <div class="member-stat-value">${stats.totalSessions}</div>
+                                <div class="member-stat-label">Sessions</div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(memberCard);
+                });
+            }
+        } catch (error) {
+            console.error('Error displaying members list:', error);
+            container.innerHTML = '<p class="text-center">Error loading members data.</p>';
+        }
     }
 
-    displayAllReports() {
+    async displayAllReports() {
         const container = document.getElementById('allReportsList');
         container.innerHTML = '';
 
-        if (this.prayerReports.length === 0) {
-            container.innerHTML = '<p class="text-center">No prayer reports found.</p>';
-            return;
+        try {
+            if (!this.isFirebaseReady) {
+                // Fallback to local data
+                if (this.prayerReports.length === 0) {
+                    container.innerHTML = '<p class="text-center">No prayer reports found.</p>';
+                    return;
+                }
+
+                const sortedReports = [...this.prayerReports].sort((a, b) => 
+                    new Date(b.prayerDate) - new Date(a.prayerDate)
+                );
+
+                sortedReports.forEach(report => {
+                    const reportElement = this.createReportElement(report);
+                    container.appendChild(reportElement);
+                });
+                return;
+            }
+
+            const result = await getAllReports();
+            if (result.success) {
+                if (result.reports.length === 0) {
+                    container.innerHTML = '<p class="text-center">No prayer reports found.</p>';
+                    return;
+                }
+
+                result.reports.forEach(report => {
+                    const reportElement = this.createReportElement(report);
+                    container.appendChild(reportElement);
+                });
+            } else {
+                container.innerHTML = '<p class="text-center">Error loading reports.</p>';
+            }
+        } catch (error) {
+            console.error('Error displaying all reports:', error);
+            container.innerHTML = '<p class="text-center">Error loading reports.</p>';
         }
-
-        const sortedReports = [...this.prayerReports].sort((a, b) => 
-            new Date(b.prayerDate) - new Date(a.prayerDate)
-        );
-
-        sortedReports.forEach(report => {
-            const reportElement = this.createReportElement(report);
-            container.appendChild(reportElement);
-        });
     }
 
     exportUserData() {
@@ -679,7 +866,6 @@ class PrayerReportApp {
         if (confirm('Are you sure you want to clear all prayer report data? This action cannot be undone.')) {
             localStorage.removeItem('prayerReports');
             this.prayerReports = [];
-            this.loadData();
             alert('All data has been cleared');
         }
     }
@@ -798,16 +984,16 @@ class PrayerReportApp {
 }
 
 // Global function to switch tabs (for welcome page buttons)
-function switchToTab(tabName) {
+async function switchToTab(tabName) {
     const app = window.prayerApp;
     if (app) {
-        app.switchTab(tabName);
+        await app.switchTab(tabName);
     }
 }
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new PrayerReportApp();
+    window.prayerApp = new PrayerReportApp();
 });
 
 // Auto-save current user name
@@ -816,13 +1002,12 @@ document.getElementById('memberName').addEventListener('input', (e) => {
 });
 
 // Auto-load user reports when name changes
-document.getElementById('memberName').addEventListener('change', () => {
-    const app = window.prayerApp || new PrayerReportApp();
-    app.loadUserReports();
+document.getElementById('memberName').addEventListener('change', async () => {
+    const app = window.prayerApp;
+    if (app) {
+        await app.loadUserReports();
+    }
 });
-
-// Store app instance globally for access
-window.prayerApp = new PrayerReportApp();
 
 // Add CSS animations for success messages
 const style = document.createElement('style');

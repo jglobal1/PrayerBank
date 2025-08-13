@@ -1,0 +1,25 @@
+{
+  "name": "prayerreport",
+  "version": "1.0.0",
+  "description": "A beautiful and functional web application for church members to track their prayer sessions and fasting activities. Built with HTML, CSS, and JavaScript.",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jglobal1/PrayerBank.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jglobal1/PrayerBank/issues"
+  },
+  "homepage": "https://github.com/jglobal1/PrayerBank#readme",
+  "dependencies": {
+    "@vercel/analytics": "^1.5.0",
+    "firebase": "^12.1.0"
+  }
+}
