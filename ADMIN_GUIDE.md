@@ -3,7 +3,7 @@
 ## **Admin Access & Security**
 
 ### **🔑 Default Admin Password:**
-- **Password:** `church2024`
+- **Password:** ``
 - **Location:** Top-right corner "Admin Login" button
 
 ### **🛡️ Security Features:**
