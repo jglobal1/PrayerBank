@@ -1,6 +1,13 @@
 // Firebase service functions for Prayer Report App
 // Using Firebase compat version (already loaded via CDN)
-const db = window.db;
+
+// Wait for Firebase to be ready
+function getDb() {
+    if (!window.db) {
+        throw new Error('Firebase not ready');
+    }
+    return window.db;
+}
 
 // Collection name for prayer reports
 const REPORTS_COLLECTION = 'prayerReports';
@@ -8,6 +15,7 @@ const REPORTS_COLLECTION = 'prayerReports';
 // Save a new prayer report to Firebase
 async function savePrayerReport(reportData) {
     try {
+        const db = getDb();
         const docRef = await db.collection(REPORTS_COLLECTION).add({
             ...reportData,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -24,6 +32,7 @@ async function savePrayerReport(reportData) {
 // Get prayer reports for a specific user
 async function getUserReports(memberName) {
     try {
+        const db = getDb();
         const querySnapshot = await db.collection(REPORTS_COLLECTION)
             .where('memberName', '==', memberName)
             .orderBy('createdAt', 'desc')
@@ -49,6 +58,7 @@ async function getUserReports(memberName) {
 // Get all prayer reports (admin function)
 async function getAllReports() {
     try {
+        const db = getDb();
         const querySnapshot = await db.collection(REPORTS_COLLECTION)
             .orderBy('createdAt', 'desc')
             .get();
@@ -73,6 +83,7 @@ async function getAllReports() {
 // Get reports for a specific month (admin function)
 async function getReportsByMonth(year, month) {
     try {
+        const db = getDb();
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
         
@@ -102,6 +113,7 @@ async function getReportsByMonth(year, month) {
 // Delete a prayer report
 async function deletePrayerReport(reportId) {
     try {
+        const db = getDb();
         await db.collection(REPORTS_COLLECTION).doc(reportId).delete();
         console.log('Prayer report deleted:', reportId);
         return { success: true };
@@ -114,6 +126,7 @@ async function deletePrayerReport(reportId) {
 // Update a prayer report
 async function updatePrayerReport(reportId, updateData) {
     try {
+        const db = getDb();
         await db.collection(REPORTS_COLLECTION).doc(reportId).update({
             ...updateData,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -129,6 +142,7 @@ async function updatePrayerReport(reportId, updateData) {
 // Get unique member names (admin function)
 async function getUniqueMembers() {
     try {
+        const db = getDb();
         const querySnapshot = await db.collection(REPORTS_COLLECTION).get();
         const members = new Set();
         
@@ -154,3 +168,23 @@ window.getReportsByMonth = getReportsByMonth;
 window.deletePrayerReport = deletePrayerReport;
 window.updatePrayerReport = updatePrayerReport;
 window.getUniqueMembers = getUniqueMembers;
+
+// Wait for Firebase to be ready before making functions available
+function waitForFirebase() {
+    return new Promise((resolve) => {
+        const checkFirebase = () => {
+            if (window.db && window.firebase) {
+                console.log('Firebase is ready');
+                resolve();
+            } else {
+                setTimeout(checkFirebase, 100);
+            }
+        };
+        checkFirebase();
+    });
+}
+
+// Initialize when Firebase is ready
+waitForFirebase().then(() => {
+    console.log('Firebase service functions ready');
+});
