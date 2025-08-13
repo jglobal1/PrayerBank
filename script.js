@@ -1,12 +1,5 @@
 // Prayer Report App - Main JavaScript File
-import { 
-    savePrayerReport, 
-    getUserReports, 
-    getAllReports, 
-    getReportsByMonth, 
-    deletePrayerReport, 
-    getUniqueMembers 
-} from './firebase-service.js';
+// Firebase functions will be available globally from firebase-service.js
 
 class PrayerReportApp {
     constructor() {

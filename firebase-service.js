@@ -1,28 +1,17 @@
 // Firebase service functions for Prayer Report App
-import { 
-    collection, 
-    addDoc, 
-    query, 
-    where, 
-    getDocs, 
-    orderBy,
-    deleteDoc,
-    doc,
-    updateDoc,
-    serverTimestamp 
-} from 'firebase/firestore';
-import { db } from './firebase-config.js';
+// Using Firebase compat version (already loaded via CDN)
+const db = window.db;
 
 // Collection name for prayer reports
 const REPORTS_COLLECTION = 'prayerReports';
 
 // Save a new prayer report to Firebase
-export async function savePrayerReport(reportData) {
+async function savePrayerReport(reportData) {
     try {
-        const docRef = await addDoc(collection(db, REPORTS_COLLECTION), {
+        const docRef = await db.collection(REPORTS_COLLECTION).add({
             ...reportData,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         console.log('Prayer report saved with ID:', docRef.id);
         return { success: true, id: docRef.id };
@@ -33,15 +22,13 @@ export async function savePrayerReport(reportData) {
 }
 
 // Get prayer reports for a specific user
-export async function getUserReports(memberName) {
+async function getUserReports(memberName) {
     try {
-        const q = query(
-            collection(db, REPORTS_COLLECTION),
-            where('memberName', '==', memberName),
-            orderBy('createdAt', 'desc')
-        );
+        const querySnapshot = await db.collection(REPORTS_COLLECTION)
+            .where('memberName', '==', memberName)
+            .orderBy('createdAt', 'desc')
+            .get();
         
-        const querySnapshot = await getDocs(q);
         const reports = [];
         
         querySnapshot.forEach((doc) => {
@@ -60,14 +47,12 @@ export async function getUserReports(memberName) {
 }
 
 // Get all prayer reports (admin function)
-export async function getAllReports() {
+async function getAllReports() {
     try {
-        const q = query(
-            collection(db, REPORTS_COLLECTION),
-            orderBy('createdAt', 'desc')
-        );
+        const querySnapshot = await db.collection(REPORTS_COLLECTION)
+            .orderBy('createdAt', 'desc')
+            .get();
         
-        const querySnapshot = await getDocs(q);
         const reports = [];
         
         querySnapshot.forEach((doc) => {
@@ -86,19 +71,17 @@ export async function getAllReports() {
 }
 
 // Get reports for a specific month (admin function)
-export async function getReportsByMonth(year, month) {
+async function getReportsByMonth(year, month) {
     try {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
         
-        const q = query(
-            collection(db, REPORTS_COLLECTION),
-            where('createdAt', '>=', startDate),
-            where('createdAt', '<=', endDate),
-            orderBy('createdAt', 'desc')
-        );
+        const querySnapshot = await db.collection(REPORTS_COLLECTION)
+            .where('createdAt', '>=', startDate)
+            .where('createdAt', '<=', endDate)
+            .orderBy('createdAt', 'desc')
+            .get();
         
-        const querySnapshot = await getDocs(q);
         const reports = [];
         
         querySnapshot.forEach((doc) => {
@@ -117,9 +100,9 @@ export async function getReportsByMonth(year, month) {
 }
 
 // Delete a prayer report
-export async function deletePrayerReport(reportId) {
+async function deletePrayerReport(reportId) {
     try {
-        await deleteDoc(doc(db, REPORTS_COLLECTION, reportId));
+        await db.collection(REPORTS_COLLECTION).doc(reportId).delete();
         console.log('Prayer report deleted:', reportId);
         return { success: true };
     } catch (error) {
@@ -129,11 +112,11 @@ export async function deletePrayerReport(reportId) {
 }
 
 // Update a prayer report
-export async function updatePrayerReport(reportId, updateData) {
+async function updatePrayerReport(reportId, updateData) {
     try {
-        await updateDoc(doc(db, REPORTS_COLLECTION, reportId), {
+        await db.collection(REPORTS_COLLECTION).doc(reportId).update({
             ...updateData,
-            updatedAt: serverTimestamp()
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         console.log('Prayer report updated:', reportId);
         return { success: true };
@@ -144,10 +127,9 @@ export async function updatePrayerReport(reportId, updateData) {
 }
 
 // Get unique member names (admin function)
-export async function getUniqueMembers() {
+async function getUniqueMembers() {
     try {
-        const q = query(collection(db, REPORTS_COLLECTION));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await db.collection(REPORTS_COLLECTION).get();
         const members = new Set();
         
         querySnapshot.forEach((doc) => {
@@ -163,3 +145,12 @@ export async function getUniqueMembers() {
         return { success: false, error: error.message, members: [] };
     }
 }
+
+// Make functions available globally
+window.savePrayerReport = savePrayerReport;
+window.getUserReports = getUserReports;
+window.getAllReports = getAllReports;
+window.getReportsByMonth = getReportsByMonth;
+window.deletePrayerReport = deletePrayerReport;
+window.updatePrayerReport = updatePrayerReport;
+window.getUniqueMembers = getUniqueMembers;

@@ -1,8 +1,5 @@
 // Firebase configuration
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
+// Using Firebase compat version (already loaded via CDN)
 
 // Your Firebase config object
 const firebaseConfig = {
@@ -16,23 +13,26 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = firebase.initializeApp(firebaseConfig);
 
 // Initialize Firestore Database
-export const db = getFirestore(app);
+const db = firebase.firestore();
 
 // Initialize Firebase Authentication
-export const auth = getAuth(app);
+const auth = firebase.auth();
 
 // Initialize Firebase Analytics (only in browser environment)
 let analytics;
 try {
     if (typeof window !== 'undefined') {
-        analytics = getAnalytics(app);
+        analytics = firebase.analytics();
     }
 } catch (error) {
     console.warn('Analytics not available:', error);
 }
-export { analytics };
 
-export default app;
+// Make available globally
+window.db = db;
+window.auth = auth;
+window.analytics = analytics;
+window.firebaseApp = app;
